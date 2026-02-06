@@ -3,6 +3,7 @@ import SolutionsTabs from '@/components/SolutionsTabs';
 import CategoryVisual from '@/components/CategoryVisual';
 import Link from 'next/link';
 import { Quote, ArrowRight } from 'lucide-react';
+import { IMAGES } from '@/lib/assets';
 
 export default function Home() {
   return (
@@ -20,12 +21,13 @@ export default function Home() {
                 <CategoryVisual type="nri" className="w-full h-full rounded-full" animate={true} />
               </div>
 
-              <div className="relative w-full h-full rounded-2xl overflow-hidden bg-slate-200 border border-slate-100 shadow-2xl">
-                {/* Visual placeholder for professional portrait */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 opacity-20" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-slate-400 font-serif italic text-lg tracking-widest uppercase">Professional Portrait</span>
-                </div>
+              <div className="relative w-full h-full rounded-2xl overflow-hidden bg-slate-200 border border-slate-100 shadow-2xl group">
+                <img
+                  src={IMAGES.PLACEHOLDERS.PROFESSIONAL_PORTRAIT}
+                  alt="Satish Mishra"
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 opacity-10" />
                 <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
                   <p className="text-white font-bold text-2xl tracking-tight">Satish Mishra</p>
                   <p className="text-slate-300 text-sm font-medium tracking-widest uppercase">Founder & Lead Adviser</p>
@@ -89,14 +91,36 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-0 border-l border-slate-800">
             {[
-              { title: "Radical Transparency", desc: "We demystify the complex, ensuring you understand every facet of your protection.", icon: "01" },
-              { title: "Conflict-Free Advice", desc: "Our recommendations are driven by your unique requirements, not provider incentives.", icon: "02" },
-              { title: "Legacy Orientation", desc: "We look beyond immediate coverage toward multi-generational wealth preservation.", icon: "03" }
+              {
+                title: "Radical Transparency",
+                desc: "We demystify the complex, ensuring you understand every facet of your protection.",
+                icon: "01",
+                image: IMAGES.PRINCIPLES.TRANSPARENCY
+              },
+              {
+                title: "Conflict-Free Advice",
+                desc: "Our recommendations are driven by your unique requirements, not provider incentives.",
+                icon: "02",
+                image: IMAGES.PRINCIPLES.CONFLICT_FREE
+              },
+              {
+                title: "Legacy Orientation",
+                desc: "We look beyond immediate coverage toward multi-generational wealth preservation.",
+                icon: "03",
+                image: IMAGES.PRINCIPLES.LEGACY
+              }
             ].map((val, idx) => (
-              <div key={idx} className="p-12 border-r border-slate-800 hover:bg-slate-800/50 transition-colors duration-500 group">
+              <div key={idx} className="relative p-12 border-r border-slate-800 hover:bg-slate-800/80 transition-all duration-500 group overflow-hidden">
+                {/* Background Image Hook */}
+                <img
+                  src={val.image}
+                  alt={val.title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-20 transition-opacity duration-700 -z-10"
+                />
+
                 <span className="text-4xl font-serif text-slate-700 font-bold mb-8 block group-hover:text-blue-500 transition-colors">{val.icon}</span>
                 <h3 className="text-2xl font-bold mb-4 tracking-tight">{val.title}</h3>
-                <p className="text-slate-400 font-light leading-relaxed">{val.desc}</p>
+                <p className="text-slate-400 font-light leading-relaxed group-hover:text-slate-200 transition-colors">{val.desc}</p>
               </div>
             ))}
           </div>
@@ -122,9 +146,9 @@ export default function Home() {
             <Link href="#" className="group">
               <div className="aspect-[16/9] bg-slate-100 rounded-2xl overflow-hidden mb-8 relative border border-slate-100 shadow-xl shadow-slate-200/50">
                 <img
-                  src="https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=1200"
+                  src={IMAGES.INSIGHTS.HEALTHCARE_FUTURE}
                   alt="Future of Healthcare"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                 <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/90 backdrop-blur text-[10px] font-bold uppercase tracking-widest text-slate-900">Research Paper</div>
@@ -135,9 +159,9 @@ export default function Home() {
             <Link href="#" className="group">
               <div className="aspect-[16/9] bg-slate-100 rounded-2xl overflow-hidden mb-8 relative border border-slate-100 shadow-xl shadow-slate-200/50">
                 <img
-                  src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1200"
+                  src={IMAGES.INSIGHTS.WEALTH_TRANSFER}
                   alt="Wealth Transfer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                 <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/90 backdrop-blur text-[10px] font-bold uppercase tracking-widest text-slate-900">Strategy</div>

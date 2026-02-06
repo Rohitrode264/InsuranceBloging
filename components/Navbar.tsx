@@ -85,12 +85,6 @@ export default function Navbar() {
                             >
                                 Contact
                             </Link>
-                            <Link
-                                href="/admin"
-                                className="px-5 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-full hover:bg-slate-800 transition-all hover:shadow-lg active:scale-95"
-                            >
-                                Sign In
-                            </Link>
                         </div>
                     </div>
 

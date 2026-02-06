@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import CategoryVisual from './CategoryVisual';
+import { IMAGES } from '@/lib/assets';
 
 const tabs = [
     { id: 'health', label: 'Health Insurance', icon: Heart },
@@ -15,19 +16,64 @@ const tabs = [
 
 const content = {
     health: [
-        { title: 'Family Floater Plans', desc: 'Comprehensive coverage for 2 adults and up to 3 children.', price: 'Starts ₹8,000/yr' },
-        { title: 'Senior Citizen Care', desc: 'Specialized plans covering age-related ailments with minimal waiting.', price: 'Starts ₹15,000/yr' },
-        { title: 'Critical Illness', desc: 'Lump sum benefit for cancer, heart, and kidney related issues.', price: 'Starts ₹5,000/yr' },
+        {
+            title: 'Family Floater Plans',
+            desc: 'Comprehensive coverage for 2 adults and up to 3 children.',
+            price: 'Starts ₹8,000/yr',
+            image: IMAGES.HEALTH.FAMILY
+        },
+        {
+            title: 'Senior Citizen Care',
+            desc: 'Specialized plans covering age-related ailments with minimal waiting.',
+            price: 'Starts ₹15,000/yr',
+            image: IMAGES.HEALTH.SENIOR
+        },
+        {
+            title: 'Critical Illness',
+            desc: 'Lump sum benefit for cancer, heart, and kidney related issues.',
+            price: 'Starts ₹5,000/yr',
+            image: IMAGES.HEALTH.CRITICAL
+        },
     ],
     life: [
-        { title: 'Term Life Insurance', desc: 'Pure protection plans with high sum assured at low premiums.', price: 'Starts ₹10,000/yr' },
-        { title: 'Endowment Plans', desc: 'Guaranteed returns with insurance cover for disciplined savings.', price: 'Customized' },
-        { title: 'Child Education', desc: 'Secure your child’s future milestones even in your absence.', price: 'Customized' },
+        {
+            title: 'Term Life Insurance',
+            desc: 'Pure protection plans with high sum assured at low premiums.',
+            price: 'Starts ₹10,000/yr',
+            image: IMAGES.LIFE.TERM
+        },
+        {
+            title: 'Endowment Plans',
+            desc: 'Guaranteed returns with insurance cover for disciplined savings.',
+            price: 'Customized',
+            image: IMAGES.LIFE.ENDOWMENT
+        },
+        {
+            title: 'Child Education',
+            desc: 'Secure your child’s future milestones even in your absence.',
+            price: 'Customized',
+            image: IMAGES.LIFE.CHILD
+        },
     ],
     motor: [
-        { title: 'Comprehensive Car', desc: 'Own damage + Third party liability cover with cashless claims.', price: 'Based on IDV' },
-        { title: 'Two Wheeler', desc: 'Multi-year policies to save you from annual renewal hassles.', price: 'Starts ₹1,000/yr' },
-        { title: 'Valid Commercial', desc: 'Coverage for taxis and commercial vehicles.', price: 'Customized' },
+        {
+            title: 'Comprehensive Car',
+            desc: 'Own damage + Third party liability cover with cashless claims.',
+            price: 'Based on IDV',
+            image: IMAGES.MOTOR.CAR
+        },
+        {
+            title: 'Two Wheeler',
+            desc: 'Multi-year policies to save you from annual renewal hassles.',
+            price: 'Starts ₹1,000/yr',
+            image: IMAGES.MOTOR.TWO_WHEELER
+        },
+        {
+            title: 'Valid Commercial',
+            desc: 'Coverage for taxis and commercial vehicles.',
+            price: 'Customized',
+            image: IMAGES.MOTOR.COMMERCIAL
+        },
     ],
 };
 
@@ -122,51 +168,54 @@ export default function SolutionsTabs() {
                         >
                             <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                                 {content[activeTab].map((item, idx) => (
-                                    <motion.div
+                                    <Link
                                         key={item.title}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: idx * 0.15 }}
-                                        className="group relative flex flex-col p-8 md:p-10 hover:bg-slate-50 transition-colors duration-500 min-h-[480px]"
+                                        href={`/service/${item.title.toLowerCase().replace(/ /g, '-')}`}
+                                        className="group"
                                     >
-                                        {/* Tag / Eyebrow */}
-                                        <div className="mb-8 flex items-center gap-3">
-                                            <span className="h-px w-6 bg-blue-600"></span>
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{activeTab} Solution</span>
-                                        </div>
-
-                                        {/* Visual */}
-                                        <div className="h-40 w-full mb-8 relative overflow-hidden bg-slate-50/50">
-                                            <CategoryVisual
-                                                type={activeTab}
-                                                className="h-full w-full absolute inset-0 rounded-none opacity-80 group-hover:scale-105 transition-transform duration-1000"
-                                                animate={true}
-                                            />
-                                            {/* Subtle overlay to keep contrast high if needed */}
-                                            <div className="absolute inset-0 bg-white/10" />
-                                        </div>
-
-                                        {/* Typography */}
-                                        <h3 className="text-2xl font-bold text-slate-900 mb-4 leading-tight group-hover:text-blue-700 transition-colors pr-4">
-                                            {item.title}
-                                        </h3>
-                                        <p className="text-slate-600 leading-relaxed mb-8 font-light line-clamp-3 text-sm">
-                                            {item.desc}
-                                        </p>
-
-                                        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-6">
-                                            <div>
-                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Premium Estimate</p>
-                                                <p className="text-sm font-semibold text-slate-900">{item.price}</p>
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: idx * 0.15 }}
+                                            className="relative flex flex-col p-8 md:p-10 hover:bg-slate-50 transition-colors duration-500 min-h-[480px]"
+                                        >
+                                            {/* Tag / Eyebrow */}
+                                            <div className="mb-8 flex items-center gap-3">
+                                                <span className="h-px w-6 bg-blue-600"></span>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{activeTab} Solution</span>
                                             </div>
-                                            <Link
-                                                href={`/contact?service=${encodeURIComponent(item.title)}`}
-                                                className="inline-flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider group-hover:text-blue-700 transition-colors"
-                                            >
-                                                Explore <ArrowRight size={14} className="ml-1 transition-transform group-hover:translate-x-1" />
-                                            </Link>
-                                        </div>
-                                    </motion.div>
+
+                                            {/* Visual */}
+                                            <div className="h-40 w-full mb-8 relative overflow-hidden bg-slate-50/50">
+                                                <motion.img
+                                                    src={item.image}
+                                                    alt={item.title}
+                                                    className="h-full w-full object-cover transition-all duration-700"
+                                                    whileHover={{ scale: 1.1 }}
+                                                />
+                                                {/* Subtle overlay to keep contrast high if needed */}
+                                                <div className="absolute inset-0 bg-slate-900/5" />
+                                            </div>
+
+                                            {/* Typography */}
+                                            <h3 className="text-2xl font-bold text-slate-900 mb-4 leading-tight group-hover:text-blue-700 transition-colors pr-4">
+                                                {item.title}
+                                            </h3>
+                                            <p className="text-slate-600 leading-relaxed mb-8 font-light line-clamp-3 text-sm">
+                                                {item.desc}
+                                            </p>
+
+                                            <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-6">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Premium Estimate</p>
+                                                    <p className="text-sm font-semibold text-slate-900">{item.price}</p>
+                                                </div>
+                                                <div className="inline-flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider group-hover:text-blue-700 transition-colors">
+                                                    Explore <ArrowRight size={14} className="ml-1 transition-transform group-hover:translate-x-1" />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    </Link>
                                 ))}
                             </div>
                         </motion.div>

@@ -1,15 +1,35 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export default function PremiumHeroVisual() {
     const [mounted, setMounted] = useState(false);
 
+    // Mouse tracking for parallax
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    // Smooth movement springs
+    const springConfig = { damping: 30, stiffness: 100 };
+    const smX = useSpring(mouseX, springConfig);
+    const smY = useSpring(mouseY, springConfig);
+
+    // Transform values for different layers
+    const layer1X = useTransform(smX, [0, 1000], [-20, 20]);
+    const layer1Y = useTransform(smY, [0, 1000], [-20, 20]);
+    const layer2X = useTransform(smX, [0, 1000], [30, -30]);
+    const layer2Y = useTransform(smY, [0, 1000], [30, -30]);
+
     useEffect(() => {
         setMounted(true);
-    }, []);
+        const handleMouseMove = (e: MouseEvent) => {
+            mouseX.set(e.clientX);
+            mouseY.set(e.clientY);
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, [mouseX, mouseY]);
 
     if (!mounted) return null;
 
@@ -18,12 +38,22 @@ export default function PremiumHeroVisual() {
             {/* Base Background */}
             <div className="absolute inset-0 bg-white" />
 
-            {/* Mesh Gradient Blobs */}
+            {/* Interactive Spotlight Glow */}
+            <motion.div
+                style={{
+                    x: smX,
+                    y: smY,
+                    translateX: '-50%',
+                    translateY: '-50%',
+                }}
+                className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-400/5 blur-[120px] rounded-full pointer-events-none"
+            />
+
+            {/* Mesh Gradient Blobs with Parallax */}
             <div className="absolute inset-0 opacity-40">
                 <motion.div
+                    style={{ x: layer1X, y: layer1Y }}
                     animate={{
-                        x: [0, 100, 0],
-                        y: [0, -50, 0],
                         scale: [1, 1.2, 1],
                     }}
                     transition={{
@@ -31,12 +61,11 @@ export default function PremiumHeroVisual() {
                         repeat: Infinity,
                         ease: "easeInOut"
                     }}
-                    className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-blue-100/50 to-indigo-100/30 blur-[120px]"
+                    className="absolute -top-[10%] -left-[5%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-blue-100/40 to-indigo-100/20 blur-[100px]"
                 />
                 <motion.div
+                    style={{ x: layer2X, y: layer2Y }}
                     animate={{
-                        x: [0, -80, 0],
-                        y: [0, 120, 0],
                         scale: [1, 1.1, 1],
                     }}
                     transition={{
@@ -44,118 +73,120 @@ export default function PremiumHeroVisual() {
                         repeat: Infinity,
                         ease: "easeInOut"
                     }}
-                    className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] rounded-full bg-gradient-to-bl from-slate-100 to-blue-50 blur-[100px]"
-                />
-
-                {/* Warm Heartfelt Glow */}
-                <motion.div
-                    animate={{
-                        opacity: [0.2, 0.4, 0.2],
-                        scale: [0.8, 1.2, 0.8],
-                    }}
-                    transition={{
-                        duration: 12,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                    className="absolute top-[10%] left-[20%] w-[40%] h-[40%] rounded-full bg-orange-100/20 blur-[150px]"
+                    className="absolute top-[30%] -right-[5%] w-[50%] h-[50%] rounded-full bg-gradient-to-bl from-slate-100 to-blue-50/50 blur-[100px]"
                 />
             </div>
 
-            {/* Architectural Grid / Lines */}
-            <svg className="absolute inset-0 w-full h-full opacity-[0.15]" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Advanced Architectural Grid */}
+            <svg className="absolute inset-0 w-full h-full opacity-[0.1]" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <defs>
-                    <pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
-                        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.1" className="text-slate-900" />
+                    <pattern id="grid-pattern-hero" width="5" height="5" patternUnits="userSpaceOnUse">
+                        <path d="M 5 0 L 0 0 0 5" fill="none" stroke="currentColor" strokeWidth="0.05" className="text-slate-900" />
                     </pattern>
-                    <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="transparent" />
-                        <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.5" />
+                    <radialGradient id="grad-spot" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
                         <stop offset="100%" stopColor="transparent" />
+                    </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#grid-pattern-hero)" />
+            </svg>
+
+            {/* Smooth Flowing Ribbons */}
+            <svg className="absolute inset-0 w-full h-full opacity-[0.2]" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="ribbon-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
+                        <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                     </linearGradient>
                 </defs>
-                <rect width="100" height="100" fill="url(#grid-pattern)" />
-
-                {/* Horizontal Scanning Line */}
-                <motion.line
-                    x1="0" y1="0" x2="100" y2="0"
-                    stroke="url(#line-grad)"
-                    strokeWidth="0.5"
-                    animate={{ y: [0, 100, 0] }}
-                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                <motion.path
+                    d="M-200,500 Q250,200 500,500 T1200,500"
+                    fill="none"
+                    stroke="url(#ribbon-grad)"
+                    strokeWidth="100"
+                    animate={{
+                        d: [
+                            "M-200,500 Q250,200 500,500 T1200,500",
+                            "M-200,600 Q250,400 500,600 T1200,400",
+                            "M-200,500 Q250,200 500,500 T1200,500"
+                        ]
+                    }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.path
+                    d="M-200,300 Q250,600 500,300 T1200,300"
+                    fill="none"
+                    stroke="url(#ribbon-grad)"
+                    strokeWidth="80"
+                    className="opacity-50"
+                    animate={{
+                        d: [
+                            "M-200,300 Q250,600 500,300 T1200,300",
+                            "M-200,200 Q250,400 500,200 T1200,400",
+                            "M-200,300 Q250,600 500,300 T1200,300"
+                        ]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
                 />
             </svg>
 
-            {/* Dynamic Connecting Nodes (Data Visualization Style) */}
+            {/* Dynamic Connecting Data Web */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
                 <defs>
-                    <filter id="node-glow">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
+                    <filter id="node-glow-hero">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
                         <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
                 </defs>
 
-                {/* Animated Paths */}
-                {[...Array(5)].map((_, i) => (
-                    <motion.path
-                        key={i}
-                        d={`M ${-100 + i * 200},${400 + Math.sin(i) * 200} Q ${500},${200 + i * 100} ${1100},${600 - i * 100}`}
-                        fill="none"
-                        stroke={i % 2 === 0 ? "#3b82f6" : "#94a3b8"}
-                        strokeWidth="0.5"
-                        strokeDasharray="10 1000"
-                        animate={{
-                            strokeDashoffset: [-1000, 0],
-                            opacity: [0, 0.3, 0]
-                        }}
-                        transition={{
-                            duration: 10 + i * 2,
-                            repeat: Infinity,
-                            delay: i * 1.5,
-                            ease: "linear"
-                        }}
-                    />
-                ))}
-
-                {/* Floating "Certainty" Nodes */}
-                {[...Array(12)].map((_, i) => (
+                {/* Floating "Security & Trust" Nodes - Slower & Smoother */}
+                {[...Array(15)].map((_, i) => (
                     <motion.g
                         key={`node-${i}`}
                         initial={{
                             x: Math.random() * 1000,
                             y: Math.random() * 1000,
-                            opacity: 0,
-                            scale: 0
+                            opacity: 0
                         }}
                         animate={{
-                            x: [null, Math.random() * 1000, Math.random() * 1000],
-                            y: [null, Math.random() * 1000, Math.random() * 1000],
-                            opacity: [0, 0.4, 0],
-                            scale: [0, 1, 0]
+                            y: [null, "-=150", "+=0"],
+                            x: [null, i % 2 === 0 ? "+=50" : "-=50", "+=0"],
+                            opacity: [0, 0.3, 0],
                         }}
                         transition={{
-                            duration: 15 + Math.random() * 10,
+                            duration: 20 + Math.random() * 20,
                             repeat: Infinity,
-                            delay: i * 0.5,
-                            ease: "easeInOut"
+                            delay: i * 0.8,
+                            ease: "linear"
                         }}
                     >
-                        <circle r="4" fill="#3b82f6" filter="url(#node-glow)" />
-                        <circle r="12" stroke="#3b82f6" strokeWidth="0.5" fill="none" className="opacity-20" />
+                        <circle r={Math.random() * 2 + 1} fill={i % 3 === 0 ? "#3b82f6" : "#cbd5e1"} filter="url(#node-glow-hero)" />
+                        {i % 4 === 0 && (
+                            <motion.circle
+                                r="12"
+                                stroke="#3b82f6"
+                                strokeWidth="0.1"
+                                fill="none"
+                                className="opacity-10"
+                                animate={{ scale: [1, 1.5, 1], opacity: [0.1, 0.2, 0.1] }}
+                                transition={{ duration: 4, repeat: Infinity }}
+                            />
+                        )}
                     </motion.g>
                 ))}
             </svg>
 
-            {/* Grain Texture / Noise for Premium Feel */}
-            <svg className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none">
-                <filter id="noiseFilter">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+            {/* Grain Texture */}
+            <svg className="absolute inset-0 w-full h-full opacity-[0.03] pointer-events-none">
+                <filter id="heroNoise">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
                 </filter>
-                <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+                <rect width="100%" height="100%" filter="url(#heroNoise)" />
             </svg>
 
-            {/* Linear fade to content */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-white" />
+            {/* Bottom Fade */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white" />
         </div>
     );
 }
