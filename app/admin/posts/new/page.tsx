@@ -1,108 +1,256 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
-import BlockEditor from '@/components/BlockEditor/Editor';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
+import { v4 as uuid } from 'uuid';
 
-export default function NewPostPage() {
-    const [title, setTitle] = useState('');
-    const [status, setStatus] = useState('draft');
-    const [slug, setSlug] = useState('');
-    const [blocks, setBlocks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
-    const supabase = createClient();
+/* ================= TYPES ================= */
 
-    const handleSave = async () => {
-        if (!title) return alert('Title is required');
-        setLoading(true);
+type TextSpan = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+};
 
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            // Logic to generate slug if empty
-            const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-            const { error } = await supabase.from('posts').insert({
-                title,
-                slug: finalSlug,
-                status,
-                blocks,
-                author_id: user.id, // RLS enforces this matches auth.uid()
-            });
-
-            if (error) throw error;
-            router.push('/admin/posts');
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setLoading(false);
-        }
+type Block =
+  | {
+      id: string;
+      type: 'heading';
+      data: { level: 1 | 2 | 3; text: TextSpan[] };
+    }
+  | {
+      id: string;
+      type: 'paragraph';
+      data: { text: TextSpan[] };
+    }
+  | {
+      id: string;
+      type: 'image';
+      data: { url: string; caption?: TextSpan[] };
     };
 
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6 sticky top-0 bg-slate-50 py-4 z-20">
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/posts" className="text-slate-500 hover:text-slate-900">
-                        <ArrowLeft size={20} />
-                    </Link>
-                    <h1 className="text-2xl font-bold text-slate-900">Create New Post</h1>
-                </div>
-                <div className="flex gap-2">
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-                    >
-                        <option value="draft">Draft</option>
-                        <option value="pending">Pending Review</option>
-                        <option value="published">Published</option>
-                    </select>
-                    <button
-                        onClick={handleSave}
-                        disabled={loading}
-                        className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50"
-                    >
-                        {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        Save Post
-                    </button>
-                </div>
-            </div>
+/* ================= PAGE ================= */
 
-            <div className="grid lg:grid-cols-[300px_1fr] gap-8">
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Title</label>
-                            <input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter post title"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Slug</label>
-                            <input
-                                value={slug}
-                                onChange={(e) => setSlug(e.target.value)}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-500 text-sm"
-                                placeholder="auto-generated-slug"
-                            />
-                        </div>
-                        {/* Category Selector would go here */}
-                    </div>
-                </div>
+export default function CreatePostPage() {
+  const [title, setTitle] = useState('');
+  const [blocks, setBlocks] = useState<Block[]>([
+    {
+      id: uuid(),
+      type: 'paragraph',
+      data: { text: [{ text: '' }] },
+    },
+  ]);
 
-                <div className="bg-slate-100 min-h-[500px] rounded-xl border-2 border-dashed border-slate-200">
-                    <BlockEditor blocks={blocks} onChange={setBlocks} />
-                </div>
-            </div>
-        </div>
+  const [showMenu, setShowMenu] = useState(false);
+  const [menuIndex, setMenuIndex] = useState<number | null>(null);
+
+  /* ================= HELPERS ================= */
+
+  const updateBlock = (id: string, newBlock: Partial<Block>) => {
+    setBlocks(b =>
+      b.map(block => (block.id === id ? { ...block, ...newBlock } : block))
     );
+  };
+
+  const insertBlockAfter = (index: number, block: Block) => {
+    const copy = [...blocks];
+    copy.splice(index + 1, 0, block);
+    setBlocks(copy);
+  };
+
+  /* ================= RENDER ================= */
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="max-w-[820px] mx-auto px-6 py-16">
+        {/* TITLE */}
+        <input
+          placeholder="Post title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          className="w-full text-5xl font-extrabold outline-none mb-14 placeholder:text-gray-300"
+        />
+
+        {/* BLOCKS */}
+        <div className="space-y-2">
+          {blocks.map((block, index) => (
+            <BlockRenderer
+              key={block.id}
+              block={block}
+              index={index}
+              setShowMenu={setShowMenu}
+              setMenuIndex={setMenuIndex}
+              updateBlock={updateBlock}
+            />
+          ))}
+        </div>
+
+        {/* COMMAND MENU */}
+        {showMenu && menuIndex !== null && (
+          <CommandMenu
+            onSelect={type => {
+              insertBlockAfter(menuIndex, createBlock(type));
+              setShowMenu(false);
+            }}
+          />
+        )}
+
+        {/* DEBUG OUTPUT */}
+        <pre className="mt-16 text-xs bg-gray-50 p-4 rounded-xl overflow-x-auto">
+          {JSON.stringify({ title, blocks }, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+/* ================= BLOCK RENDERER ================= */
+
+function BlockRenderer({
+  block,
+  index,
+  updateBlock,
+  setShowMenu,
+  setMenuIndex,
+}: any) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const onKeyDown = (e: any) => {
+    if (e.key === '/' && block.type === 'paragraph') {
+      setShowMenu(true);
+      setMenuIndex(index);
+    }
+  };
+
+  if (block.type === 'heading') {
+    const Tag = `h${block.data.level}` as any;
+    return (
+      <Tag
+        contentEditable
+        suppressContentEditableWarning
+        className="outline-none font-bold text-gray-900"
+        style={{
+          fontSize:
+            block.data.level === 1
+              ? '2.5rem'
+              : block.data.level === 2
+              ? '2rem'
+              : '1.6rem',
+        }}
+        onInput={e =>
+          updateBlock(block.id, {
+            data: { ...block.data, text: [{ text: e.currentTarget.textContent || '' }] },
+          })
+        }
+      >
+        {block.data.text.map((t: any) => t.text).join('')}
+      </Tag>
+    );
+  }
+
+  if (block.type === 'paragraph') {
+    return (
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onKeyDown={onKeyDown}
+        className="outline-none text-lg leading-8 text-gray-800 min-h-[28px]"
+        onInput={e =>
+          updateBlock(block.id, {
+            data: { text: [{ text: e.currentTarget.textContent || '' }] },
+          })
+        }
+      >
+        {block.data.text.map((t: any) => t.text).join('')}
+      </div>
+    );
+  }
+
+  if (block.type === 'image') {
+    return (
+      <figure className="space-y-2">
+        <img
+          src={block.data.url}
+          className="rounded-2xl max-h-[480px] mx-auto"
+        />
+        <figcaption
+          contentEditable
+          suppressContentEditableWarning
+          className="text-center text-sm text-gray-500 outline-none"
+          onInput={e =>
+            updateBlock(block.id, {
+              data: {
+                ...block.data,
+                caption: [{ text: e.currentTarget.textContent || '' }],
+              },
+            })
+          }
+        >
+          {block.data.caption?.map(c => c.text).join('')}
+        </figcaption>
+      </figure>
+    );
+  }
+
+  return null;
+}
+
+/* ================= COMMAND MENU ================= */
+
+function CommandMenu({ onSelect }: { onSelect: (type: any) => void }) {
+  return (
+    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 bg-white shadow-2xl rounded-xl w-64 p-2 space-y-1 z-50">
+      <MenuItem label="Heading 1" onClick={() => onSelect('h1')} />
+      <MenuItem label="Heading 2" onClick={() => onSelect('h2')} />
+      <MenuItem label="Text" onClick={() => onSelect('p')} />
+      <MenuItem label="Image" onClick={() => onSelect('image')} />
+    </div>
+  );
+}
+
+function MenuItem({ label, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 text-sm"
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ================= FACTORY ================= */
+
+function createBlock(type: 'h1' | 'h2' | 'p' | 'image'): Block {
+  if (type === 'h1')
+    return {
+      id: uuid(),
+      type: 'heading',
+      data: { level: 1, text: [{ text: 'Heading' }] },
+    };
+
+  if (type === 'h2')
+    return {
+      id: uuid(),
+      type: 'heading',
+      data: { level: 2, text: [{ text: 'Heading' }] },
+    };
+
+  if (type === 'image')
+    return {
+      id: uuid(),
+      type: 'image',
+      data: {
+        url: 'https://placehold.co/800x400',
+        caption: [{ text: 'Image caption' }],
+      },
+    };
+
+  return {
+    id: uuid(),
+    type: 'paragraph',
+    data: { text: [{ text: '' }] },
+  };
 }

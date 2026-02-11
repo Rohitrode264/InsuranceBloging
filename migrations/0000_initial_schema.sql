@@ -35,7 +35,7 @@ create table public.posts (
 );
 
 -- CONTACT REQUESTS
-create table public.contact_requests (
+create table public contact_requests (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   phone text,
