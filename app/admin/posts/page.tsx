@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils'; // Assuming you have this utility
 
 export default function PostsPage() {
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
@@ -16,11 +17,28 @@ export default function PostsPage() {
     }, []);
 
     const fetchPosts = async () => {
-        const { data } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch Profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        let query = supabase
             .from('posts')
             .select('*, categories(title)')
             .order('created_at', { ascending: false });
+
+        if (profile?.role === 'contributor') {
+            query = query.eq('author_id', user.id);
+        }
+
+        const { data } = await query;
         if (data) setPosts(data);
+        if (profile) setUserRole(profile.role);
         setLoading(false);
     };
 
@@ -29,6 +47,13 @@ export default function PostsPage() {
         const { error } = await supabase.from('posts').delete().eq('id', id);
         if (!error) fetchPosts();
         else alert('Error deleting post');
+    };
+
+    const publishPost = async (id: string) => {
+        if (!confirm('Publish this post?')) return;
+        const { error } = await supabase.from('posts').update({ status: 'published' }).eq('id', id);
+        if (!error) fetchPosts();
+        else alert('Error publishing post');
     };
 
     return (
@@ -61,7 +86,11 @@ export default function PostsPage() {
                         ) : (
                             posts.map(post => (
                                 <tr key={post.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-slate-900">{post.title}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-900">
+                                        <Link href={`/post/${post.slug}`} target="_blank" className="hover:text-blue-600 transition-colors">
+                                            {post.title}
+                                        </Link>
+                                    </td>
                                     <td className="px-6 py-4 text-slate-600">{post.categories?.title}</td>
                                     <td className="px-6 py-4">
                                         <span className={cn("px-2 py-1 rounded-full text-xs font-semibold uppercase",
@@ -79,10 +108,17 @@ export default function PostsPage() {
                                         <button onClick={() => deletePost(post.id)} className="p-2 text-slate-400 hover:text-red-500">
                                             <Trash2 size={18} />
                                         </button>
-                                        {post.status === 'published' && (
-                                            <Link href={`/post/${post.slug}`} target="_blank" className="p-2 text-slate-400 hover:text-green-600">
-                                                <Eye size={18} />
-                                            </Link>
+                                        <Link href={`/post/${post.slug}`} target="_blank" className="p-2 text-slate-400 hover:text-green-600" title="Preview Post">
+                                            <Eye size={18} />
+                                        </Link>
+                                        {userRole === 'admin' && post.status !== 'published' && (
+                                            <button
+                                                onClick={() => publishPost(post.id)}
+                                                className="p-2 text-slate-400 hover:text-blue-600"
+                                                title="Publish Post"
+                                            >
+                                                <CheckCircle2 size={18} />
+                                            </button>
                                         )}
                                     </td>
                                 </tr>

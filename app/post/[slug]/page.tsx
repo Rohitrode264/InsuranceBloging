@@ -15,8 +15,9 @@ async function getPost(slug: string) {
     return post;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const post = await getPost(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const post = await getPost(slug);
     if (!post) return {};
 
     return {
@@ -29,49 +30,59 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     };
 }
 
-export default async function PostPage({ params }: { params: { slug: string } }) {
-    const post = await getPost(params.slug);
+export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const post = await getPost(slug);
 
     if (!post) {
         notFound();
     }
 
     return (
-        <article className="min-h-screen bg-white pb-20">
-            {/* Header */}
-            <header className="relative h-[400px] md:h-[500px] bg-slate-900 text-white flex items-end">
-                {post.cover_image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={post.cover_image_url}
-                        className="absolute inset-0 w-full h-full object-cover opacity-50"
-                        alt={post.title}
-                    />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
-
-                <div className="container mx-auto px-4 relative z-10 pb-12">
-                    {post.categories && (
-                        <Link
-                            href={`/category/${post.categories.slug}`}
-                            className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold mb-4 hover:bg-blue-700 transition"
-                        >
-                            {post.categories.title}
-                        </Link>
-                    )}
-                    <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-4xl">
+        <article className="min-h-screen bg-white pb-20 pt-32 lg:pt-40">
+            <div className="container mx-auto px-4 max-w-4xl">
+                {/* Heading Area */}
+                <div className="mb-12">
+                    <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tighter">
                         {post.title}
                     </h1>
-                    <div className="flex items-center gap-4 text-slate-300 text-sm">
-                        <span>By {post.profiles?.full_name || 'Satish Mishra'}</span>
-                        <span>•</span>
-                        <span>{new Date(post.created_at).toLocaleDateString()}</span>
+
+                    {post.categories && (
+                        <div className="text-lg md:text-xl font-medium text-slate-400 mb-6 uppercase tracking-widest italic">
+                            {post.categories.title}
+                        </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-4 text-slate-400 text-sm font-medium mb-12">
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-900">By {post.profiles?.full_name || 'Satish Mishra'}</span>
+                        </div>
+                        <span className="w-1 h-1 rounded-full bg-slate-300" />
+                        <time dateTime={post.created_at}>
+                            {new Date(post.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </time>
+                        {post.status !== 'published' && (
+                            <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[10px] border border-orange-200 uppercase font-bold">
+                                {post.status}
+                            </span>
+                        )}
                     </div>
                 </div>
-            </header>
 
-            {/* Content */}
-            <div className="container mx-auto px-4 mt-12 max-w-3xl">
+                {/* Cover Image */}
+                {post.cover_image_url && (
+                    <div className="mb-16 -mx-4 md:mx-0 group">
+                        <div className="overflow-hidden rounded-2xl md:rounded-3xl shadow-2xl shadow-slate-200 border border-slate-100">
+                            <img
+                                src={post.cover_image_url}
+                                className="w-full h-auto object-cover transform transition-transform duration-1000 group-hover:scale-105"
+                                alt={post.title}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Blog Content Blocks */}
                 <PostRenderer blocks={post.blocks} />
             </div>
         </article>

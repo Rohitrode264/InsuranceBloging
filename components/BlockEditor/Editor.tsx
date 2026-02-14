@@ -1,11 +1,20 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableBlock } from './SortableBlock';
-import { Plus, Type, Image as ImageIcon, Quote as QuoteIcon, Hash } from 'lucide-react';
+import { SlashMenu } from './SlashMenu';
+import { Toolbar } from './Toolbar';
+import { AnimatePresence } from 'framer-motion';
 
 export default function BlockEditor({ blocks = [], onChange }: { blocks: any[]; onChange: (blocks: any[]) => void }) {
+    const [slashMenu, setSlashMenu] = useState<{ open: boolean; pos: { top: number; left: number }; blockId: string | null }>({
+        open: false,
+        pos: { top: 0, left: 0 },
+        blockId: null
+    });
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor)
@@ -13,47 +22,67 @@ export default function BlockEditor({ blocks = [], onChange }: { blocks: any[]; 
 
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
-        if (active.id !== over.id) {
+        if (active && over && active.id !== over.id) {
             const oldIndex = blocks.findIndex((b) => b.id === active.id);
             const newIndex = blocks.findIndex((b) => b.id === over.id);
             onChange(arrayMove(blocks, oldIndex, newIndex));
         }
     };
 
-    const addBlock = (type: string) => {
-        const newBlock = {
-            id: crypto.randomUUID(),
-            type,
-            props: type === 'image' ? { url: '' } : { text: '' },
-        };
-        onChange([...blocks, newBlock]);
-    };
+    const addBlock = useCallback((type: string, afterId?: string) => {
+        const id = `b-${Math.random().toString(36).substr(2, 9)}`;
+        let newBlock: any;
 
-    const updateBlock = (id: string, newProps: any) => {
-        onChange(blocks.map(b => b.id === id ? { ...b, props: newProps } : b));
+        if (type.startsWith('heading')) {
+            newBlock = {
+                id,
+                type: 'heading',
+                data: { text: '' },
+                style: { level: type === 'heading-2' ? 2 : 1, color: '#1f2937' }
+            };
+        } else if (type === 'image') {
+            newBlock = {
+                id,
+                type: 'image',
+                data: { url: '', caption: '' },
+                style: { width: '100%', borderRadius: '12px' }
+            };
+        } else {
+            newBlock = {
+                id,
+                type: 'paragraph',
+                data: { text: [{ text: '' }] },
+                style: { fontSize: '16px', lineHeight: '1.7' }
+            };
+        }
+
+        if (afterId) {
+            const index = blocks.findIndex(b => b.id === afterId);
+            const newBlocks = [...blocks];
+            newBlocks.splice(index + 1, 0, newBlock);
+            onChange(newBlocks);
+        } else {
+            onChange([...blocks, newBlock]);
+        }
+
+        setSlashMenu({ open: false, pos: { top: 0, left: 0 }, blockId: null });
+    }, [blocks, onChange]);
+
+    const updateBlock = (id: string, data: any, style: any) => {
+        onChange(blocks.map(b => b.id === id ? { ...b, data, style } : b));
     };
 
     const removeBlock = (id: string) => {
+        if (blocks.length <= 1) {
+            // Reset last block instead of deleting if it's the only one
+            updateBlock(id, { text: [{ text: '' }] }, { fontSize: '16px', lineHeight: '1.7' });
+            return;
+        }
         onChange(blocks.filter(b => b.id !== id));
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-6 flex gap-2 p-2 bg-slate-100 rounded-lg justify-center sticky top-20 z-10 w-fit mx-auto shadow-sm">
-                <button onClick={() => addBlock('heading')} className="p-2 hover:bg-white rounded text-slate-600 tooltip" title="Heading">
-                    <Hash size={20} />
-                </button>
-                <button onClick={() => addBlock('paragraph')} className="p-2 hover:bg-white rounded text-slate-600" title="Paragraph">
-                    <Type size={20} />
-                </button>
-                <button onClick={() => addBlock('quote')} className="p-2 hover:bg-white rounded text-slate-600" title="Quote">
-                    <QuoteIcon size={20} />
-                </button>
-                <button onClick={() => addBlock('image')} className="p-2 hover:bg-white rounded text-slate-600" title="Image">
-                    <ImageIcon size={20} />
-                </button>
-            </div>
-
+        <div className="relative min-h-[400px]">
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -71,6 +100,8 @@ export default function BlockEditor({ blocks = [], onChange }: { blocks: any[]; 
                                 block={block}
                                 updateBlock={updateBlock}
                                 removeBlock={removeBlock}
+                                onEnter={() => addBlock('paragraph', block.id)}
+                                triggerSlash={(pos: any) => setSlashMenu({ open: true, pos, blockId: block.id })}
                             />
                         ))}
                     </div>
@@ -78,10 +109,29 @@ export default function BlockEditor({ blocks = [], onChange }: { blocks: any[]; 
             </DndContext>
 
             {blocks.length === 0 && (
-                <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-xl">
-                    <p className="text-slate-400">Start by adding a block from the toolbar above.</p>
+                <div
+                    className="py-10 text-slate-300 cursor-text"
+                    onClick={() => addBlock('paragraph')}
+                >
+                    Click to start writing...
                 </div>
             )}
+
+            <AnimatePresence>
+                {slashMenu.open && (
+                    <SlashMenu
+                        position={slashMenu.pos}
+                        onClose={() => setSlashMenu({ ...slashMenu, open: false })}
+                        onSelect={(type) => {
+                            if (slashMenu.blockId) {
+                                // If we trigger slash in an empty paragraph, we might want to replace it
+                                // but for now let's just add after.
+                                addBlock(type, slashMenu.blockId);
+                            }
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

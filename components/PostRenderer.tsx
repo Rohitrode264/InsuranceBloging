@@ -2,45 +2,85 @@
 
 import { cn } from '@/lib/utils';
 
+interface TextSpan {
+    text: string;
+    bold?: boolean;
+    color?: string;
+}
+
 export default function PostRenderer({ blocks }: { blocks: any[] }) {
     if (!Array.isArray(blocks) || blocks.length === 0) return null;
 
     return (
-        <div className="space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8 px-4 md:px-0">
             {blocks.map((block) => {
-                switch (block.type) {
-                    case 'heading':
+                const { id, type, data, style } = block;
+
+                switch (type) {
+                    case 'heading': {
+                        const level = style?.level || 1;
+                        const Tag = (level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3') as keyof React.JSX.IntrinsicElements;
                         return (
-                            <h2 key={block.id} className="text-2xl md:text-3xl font-bold text-slate-900 mt-8 mb-4">
-                                {block.props.text}
-                            </h2>
+                            <Tag
+                                key={id}
+                                className={cn(
+                                    "font-extrabold text-slate-900 tracking-tight",
+                                    level === 1 ? "text-4xl md:text-5xl mt-12 mb-6" :
+                                        level === 2 ? "text-3xl md:text-4xl mt-10 mb-5" :
+                                            "text-2xl md:text-3xl mt-8 mb-4"
+                                )}
+                                style={{ color: style?.color }}
+                            >
+                                {data.text}
+                            </Tag>
                         );
+                    }
 
                     case 'paragraph':
                         return (
-                            <p key={block.id} className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                {block.props.text}
+                            <p
+                                key={id}
+                                className="text-slate-600 leading-relaxed text-lg font-light"
+                                style={{
+                                    fontSize: style?.fontSize || '1.125rem',
+                                    lineHeight: style?.lineHeight || '1.8'
+                                }}
+                            >
+                                {data.text.map((span: TextSpan, idx: number) => (
+                                    <span
+                                        key={idx}
+                                        className={cn(span.bold && "font-semibold text-slate-900")}
+                                        style={{ color: span.color }}
+                                    >
+                                        {span.text}
+                                    </span>
+                                ))}
                             </p>
                         );
 
                     case 'image':
                         return (
-                            <figure key={block.id} className="my-8">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={block.props.url}
-                                    alt="Content image"
-                                    className="w-full rounded-xl shadow-lg"
-                                    loading="lazy"
-                                />
+                            <figure key={id} className="my-12 space-y-4">
+                                <div className="overflow-hidden shadow-2xl shadow-slate-200" style={{ borderRadius: style?.borderRadius || '16px' }}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={data.url}
+                                        alt={data.caption || "Blog image"}
+                                        className="w-full h-auto object-cover hover:scale-[1.02] transition-transform duration-700"
+                                        style={{
+                                            width: style?.width || '100%',
+                                        }}
+                                        loading="lazy"
+                                    />
+                                </div>
+                                {data.caption && (
+                                    <figcaption className="text-center text-sm text-slate-400 font-medium">
+                                        <span className="inline-block w-8 h-[1px] bg-slate-200 align-middle mr-2" />
+                                        {data.caption}
+                                        <span className="inline-block w-8 h-[1px] bg-slate-200 align-middle ml-2" />
+                                    </figcaption>
+                                )}
                             </figure>
-                        );
-
-                    case 'quote':
-                        return (
-                            <blockquote key={block.id} className="border-l-4 border-blue-600 pl-6 my-8 italic text-xl text-slate-800 bg-slate-50 py-4 pr-4 rounded-r-lg">
-                                "{block.props.text}"
-                            </blockquote>
                         );
 
                     default:

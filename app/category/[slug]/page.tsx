@@ -1,10 +1,9 @@
-import { notFound } from 'next/navigation';
-import Hero from '@/components/Hero'; // Reusing layout elements but will customize
-import AbstractBackground from '@/components/AbstractBackground';
-import CategoryVisual from '@/components/CategoryVisual';
-import { Shield, TrendingUp, Users, Heart, Phone, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { Metadata } from 'next';
+import { createClient } from '@/lib/supabaseServer';
+import { notFound } from 'next/navigation';
+import CategoryVisual from '@/components/CategoryVisual';
+import { Shield, TrendingUp, Phone } from 'lucide-react';
 
 // This would typically come from a database, but bridging for the layout demo
 const categoryData: Record<string, any> = {
@@ -66,26 +65,72 @@ const categoryData: Record<string, any> = {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
+
+    // Try static data first
     const category = categoryData[slug];
-    if (!category) return { title: 'Not Found' };
-    return {
-        title: `${category.title} | JivanSecure`,
-        description: category.subtitle
-    };
+    if (category) {
+        return {
+            title: `${category.title} | JivanSecure`,
+            description: category.subtitle
+        };
+    }
+
+    // Try fetching from DB
+    const supabase = await createClient();
+    const { data: dbCategory } = await supabase
+        .from('categories')
+        .select('title')
+        .eq('slug', slug)
+        .single();
+
+    if (dbCategory) {
+        return {
+            title: `${dbCategory.title} | JivanSecure`,
+            description: `Expert insights and comprehensive guides on ${dbCategory.title}.`
+        };
+    }
+
+    return { title: 'Not Found' };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const data = categoryData[slug];
+    const staticData = categoryData[slug];
 
-    if (!data) {
-        notFound();
+    const supabase = await createClient();
+
+    // 1. Fetch Category from DB to ensure it exists and get ID
+    const { data: dbCategory } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+    // If not in static config AND not in DB, 404
+    if (!staticData && !dbCategory) {
+        return notFound();
     }
+
+    const title = staticData?.title || dbCategory?.title;
+    const subtitle = staticData?.subtitle || `Expert insights and comprehensive guides on ${title}.`;
+    const features = staticData?.features || [
+        { title: 'Expert Analysis', desc: 'In-depth articles from industry veterans.' },
+        { title: 'Latest Trends', desc: 'Stay updated with the changing landscape.' },
+        { title: 'Practical Guides', desc: 'Step-by-step advice for your financial journey.' }
+    ];
+
+    // 2. Fetch Posts for this Category
+    const { data: posts } = await supabase
+        .from('posts')
+        .select('*, profiles(full_name)')
+        .eq('category_id', dbCategory?.id) // Use DB ID if available
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
 
     return (
         <main className="flex-1">
             {/* Hero Section for Category */}
-            <section className="relative pt-32 pb-20 overflow-hidden min-h-[60vh] flex items-center">
+            <section className="relative pt-32 pb-20 overflow-hidden min-h-[50vh] flex items-center">
                 {/* Background Visual */}
                 <div className="absolute inset-0 -z-10">
                     <CategoryVisual type={slug} className="w-full h-full rounded-none opacity-40" animate={true} />
@@ -96,28 +141,14 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                     <div className="max-w-3xl">
                         <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-white/80 backdrop-blur border border-slate-200 text-slate-800 text-xs font-bold uppercase tracking-wider shadow-sm">
                             <TrendingUp size={12} />
-                            <span>Expert Solutions</span>
+                            <span>Category Focus</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
-                            {data.title}
+                            {title}
                         </h1>
                         <p className="text-xl md:text-2xl text-slate-600 leading-relaxed font-light mb-10 max-w-2xl">
-                            {data.subtitle}
+                            {subtitle}
                         </p>
-                        <div className="flex flex-wrap gap-4">
-                            <Link
-                                href="/contact"
-                                className="px-8 py-4 bg-slate-900 text-white font-bold rounded-full hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-1"
-                            >
-                                Get a Quote <ArrowUpRight size={18} />
-                            </Link>
-                            <Link
-                                href="#features"
-                                className="px-8 py-4 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-200"
-                            >
-                                Learn More
-                            </Link>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -126,7 +157,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             <section className="py-24 bg-white">
                 <div className="container mx-auto px-6 lg:px-12">
                     <div className="grid md:grid-cols-3 gap-12">
-                        {data.features.map((feature: any, idx: number) => (
+                        {features.map((feature: any, idx: number) => (
                             <div key={idx} className="group">
                                 <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-slate-900 group-hover:border-slate-900 transition-colors duration-300">
                                     <Shield className="w-6 h-6 text-slate-900 group-hover:text-white transition-colors" />
@@ -141,10 +172,57 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 </div>
             </section>
 
-            {/* CTA Section */}
+            {/* BLOG POSTS SECTION */}
             <section className="py-24 bg-slate-50 border-t border-slate-200">
+                <div className="container mx-auto px-6 lg:px-12">
+                    <div className="flex items-center justify-between mb-12">
+                        <h2 className="text-3xl font-bold text-slate-900">Latest Insights</h2>
+                    </div>
+
+                    {posts && posts.length > 0 ? (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {posts.map((post: any) => (
+                                <Link key={post.id} href={`/post/${post.slug}`} className="group flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                                    <div className="aspect-[16/9] bg-slate-100 relative overflow-hidden">
+                                        {post.cover_image_url ? (
+                                            <img
+                                                src={post.cover_image_url}
+                                                alt={post.title}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-300">
+                                                <Shield size={48} />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-900">
+                                            {title}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 p-8 flex flex-col">
+                                        <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                            {post.title}
+                                        </h3>
+                                        <div className="mt-auto pt-6 flex items-center justify-between text-xs text-slate-500 font-medium uppercase tracking-wider">
+                                            <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                                            <span>Read Article &rarr;</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+                            <p className="text-slate-500 text-lg">No posts available in this category yet.</p>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* CTA Section */}
+            <section className="py-24 bg-white border-t border-slate-200">
                 <div className="container mx-auto px-6 lg:px-12 text-center">
-                    <h2 className="text-3xl font-bold text-slate-900 mb-6">Ready to secure your future?</h2>
+                    <h2 className="text-3xl font-bold text-slate-900 mb-6">Need personalized advice?</h2>
                     <p className="text-slate-600 mb-8 max-w-2xl mx-auto">
                         Talk to our experts today and get a personalized plan that suits your needs.
                     </p>
