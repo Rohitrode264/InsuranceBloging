@@ -10,7 +10,7 @@ async function getPost(slug: string) {
     const supabase = await createClient();
     const { data: post } = await supabase
         .from('posts')
-        .select('*, categories(title, slug), profiles(full_name)')
+        .select('*, categories(title, slug), subcategories(title, slug), profiles(full_name)')
         .eq('slug', slug)
         .single();
     return post;
@@ -57,15 +57,30 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                                     <span>/</span>
                                 </>
                             )}
+                            {post.subcategories && (
+                                <>
+                                    <Link href={`/category/${post.categories?.slug}?sub=${post.subcategories.slug}`} className="hover:text-slate-900 transition-colors">
+                                        {post.subcategories.title}
+                                    </Link>
+                                    <span>/</span>
+                                </>
+                            )}
                             <span className="text-slate-900 font-medium">Article</span>
                         </div>
 
                         {/* Category Badge */}
-                        {post.categories && (
-                            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest border border-blue-100">
-                                {post.categories.title}
-                            </div>
-                        )}
+                        <div className="flex gap-2 mb-6">
+                            {post.categories && (
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest border border-blue-100">
+                                    {post.categories.title}
+                                </div>
+                            )}
+                            {post.subcategories && (
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-purple-50 text-purple-600 text-[10px] font-bold uppercase tracking-widest border border-purple-100">
+                                    {post.subcategories.title}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Title */}
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-8 tracking-tight text-slate-900">

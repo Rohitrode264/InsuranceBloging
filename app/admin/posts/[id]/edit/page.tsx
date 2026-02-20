@@ -25,6 +25,7 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
     const [status, setStatus] = useState<'draft' | 'pending' | 'published'>('draft')
     const [categories, setCategories] = useState<any[]>([])
     const [selectedCategory, setSelectedCategory] = useState<string>('')
+    const [selectedSubcategory, setSelectedSubcategory] = useState<string>('')
     const [blocks, setBlocks] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -48,8 +49,11 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
                     .single()
                 setProfile(profileData)
 
-                // Fetch Categories
-                const { data: catData } = await supabase.from('categories').select('*').order('title')
+                // Fetch Categories with nested Subcategories
+                const { data: catData } = await supabase
+                    .from('categories')
+                    .select('*, subcategories(*)')
+                    .order('title')
                 if (catData) setCategories(catData)
 
                 // Fetch Post
@@ -73,6 +77,7 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
                     setSlug(post.slug)
                     setStatus(post.status)
                     setSelectedCategory(post.category_id)
+                    setSelectedSubcategory(post.subcategory_id || '')
                     setBlocks(post.blocks || [])
                 }
             } catch (err: any) {
@@ -84,6 +89,9 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
         }
         fetchData()
     }, [id, supabase, router])
+
+    // Derive subcategories from the selected category
+    const filteredSubcategories = categories.find(c => c.id === selectedCategory)?.subcategories || []
 
     const generatedSlug =
         slug ||
@@ -102,8 +110,8 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
             if (!user) throw new Error('Not authenticated')
 
             // Admins can publish directly, contributors must have can_post_direct flag
-            const updatedStatus = profile?.role === 'admin' 
-                ? finalStatus 
+            const updatedStatus = profile?.role === 'admin'
+                ? finalStatus
                 : (profile?.can_post_direct ? finalStatus : (finalStatus === 'published' ? 'pending' : finalStatus));
 
             const { error } = await supabase
@@ -113,6 +121,7 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
                     slug: generatedSlug,
                     status: updatedStatus,
                     category_id: selectedCategory,
+                    subcategory_id: selectedSubcategory || null,
                     blocks,
                     updated_at: new Date().toISOString()
                 })
@@ -206,22 +215,52 @@ export default function EditPostPage({ params: paramsPromise }: { params: Promis
                                 /blog/{generatedSlug || 'your-post-slug'}
                             </div>
 
-                            <div className="mb-8">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    Category <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={selectedCategory}
-                                    onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                                >
-                                    <option value="">Select a Category</option>
-                                    {categories.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.title}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Category <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => {
+                                            setSelectedCategory(e.target.value)
+                                            setSelectedSubcategory('') // Reset subcategory when category changes
+                                        }}
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                                    >
+                                        <option value="">Select a Category</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Subcategory
+                                    </label>
+                                    <select
+                                        value={selectedSubcategory}
+                                        onChange={(e) => setSelectedSubcategory(e.target.value)}
+                                        disabled={!selectedCategory || filteredSubcategories.length === 0}
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="">
+                                            {!selectedCategory
+                                                ? 'Select a category first'
+                                                : filteredSubcategories.length === 0
+                                                    ? 'No subcategories'
+                                                    : 'Select a Subcategory'}
                                         </option>
-                                    ))}
-                                </select>
+                                        {filteredSubcategories.map((sub: any) => (
+                                            <option key={sub.id} value={sub.id}>
+                                                {sub.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {blocks.length > 0 && (

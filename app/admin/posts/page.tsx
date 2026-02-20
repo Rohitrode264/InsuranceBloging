@@ -29,7 +29,7 @@ export default function PostsPage() {
 
         let query = supabase
             .from('posts')
-            .select('*, categories(title)')
+            .select('*, categories(title), subcategories(title)')
             .order('created_at', { ascending: false });
 
         if (profile?.role === 'contributor') {
@@ -77,7 +77,7 @@ export default function PostsPage() {
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th className="px-6 py-4 font-semibold text-slate-600 text-sm">Title</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600 text-sm">Category</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600 text-sm">Category / Subcategory</th>
                             <th className="px-6 py-4 font-semibold text-slate-600 text-sm">Status</th>
                             <th className="px-6 py-4 font-semibold text-slate-600 text-sm">Actions</th>
                         </tr>
@@ -95,7 +95,14 @@ export default function PostsPage() {
                                             {post.title}
                                         </Link>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-600">{post.categories?.title}</td>
+                                    <td className="px-6 py-4 text-slate-600">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-slate-800">{post.categories?.title}</span>
+                                            {post.subcategories && (
+                                                <span className="text-xs text-slate-400">{post.subcategories.title}</span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4">
                                         <span className={cn("px-2 py-1 rounded-full text-xs font-semibold uppercase",
                                             post.status === 'published' ? 'bg-green-100 text-green-700' :
