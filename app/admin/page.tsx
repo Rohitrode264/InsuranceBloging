@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
-import { CheckCircle, Clock, FileText, Send, Trash2, ExternalLink } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Send, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -37,7 +37,9 @@ export default function AdminDashboard() {
         });
 
         // Fetch Pending Posts for Admin
-        if (profile?.role === 'admin') {
+        const userRoleCheck = profile?.role?.trim().toLowerCase();
+        const isAdminCheck = userRoleCheck === 'admin' || userRoleCheck === 'administrator';
+        if (isAdminCheck) {
             const { data: pending } = await supabase
                 .from('posts')
                 .select('*, profiles:author_id(full_name)')
@@ -81,7 +83,8 @@ export default function AdminDashboard() {
 
     if (loading) return <div className="text-slate-400">Loading dashboard...</div>;
 
-    const isAdmin = profile?.role === 'admin';
+    const userRoleValue = profile?.role?.trim().toLowerCase();
+    const isAdmin = userRoleValue === 'admin' || userRoleValue === 'administrator';
 
     return (
         <div className="space-y-8">
@@ -163,7 +166,9 @@ export default function AdminDashboard() {
                             pendingPosts.map(post => (
                                 <div key={post.id} className="p-6 hover:bg-slate-50 transition-colors flex justify-between items-center group">
                                     <div className="flex-1">
-                                        <h3 className="font-bold text-slate-900 text-lg line-clamp-1">{post.title}</h3>
+                                        <Link href={`/admin/blogs/blog?id=${post.id}`} className="hover:text-blue-600 transition-colors">
+                                            <h3 className="font-bold text-slate-900 text-lg line-clamp-1">{post.title}</h3>
+                                        </Link>
                                         <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                                             {isAdmin && <span>By {post.profiles?.full_name} •</span>}
                                             <span>{new Date(post.created_at).toLocaleDateString()}</span>
@@ -187,8 +192,16 @@ export default function AdminDashboard() {
                                             </button>
                                         )}
                                         <Link
+                                            href={`/admin/blogs/blog?id=${post.id}`}
+                                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+                                            title="Review Post"
+                                        >
+                                            <Eye size={16} />
+                                        </Link>
+                                        <Link
                                             href={`/admin/posts/${post.id}/edit`}
                                             className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+                                            title="Edit Post"
                                         >
                                             <ExternalLink size={16} />
                                         </Link>

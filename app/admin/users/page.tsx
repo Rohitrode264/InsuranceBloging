@@ -103,12 +103,6 @@ export default function UserManagementPage() {
 
     setLoading(true);
     try {
-      // In a real app, this should call an edge function like 'delete_user'
-      // to delete from auth.users. For now, we delete from public.profiles.
-      // If the schema has 'on delete cascade' on the FK, deleting the profile won't work
-      // because auth.users is the parent. 
-      // So we generally need to delete from auth.users via admin API.
-
       const { error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: id },
       });
@@ -119,7 +113,6 @@ export default function UserManagementPage() {
       fetchProfiles();
     } catch (error: any) {
       console.error('Delete error:', error);
-      // Fallback: Try direct delete if RLS/Triggers allow it
       const { error: directError } = await supabase.from('profiles').delete().eq('id', id);
       if (directError) {
         alert(`Error deleting user: ${error.message || directError.message}`);
@@ -140,7 +133,10 @@ export default function UserManagementPage() {
     );
   }
 
-  if (currentUserProfile?.role !== 'admin') {
+  const currentUserRole = currentUserProfile?.role?.trim().toLowerCase();
+  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'administrator';
+
+  if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto mt-20 p-12 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl text-center">
         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-8">
@@ -320,9 +316,9 @@ export default function UserManagementPage() {
                     <span
                       className={cn(
                         'inline-flex items-center gap-2 font-black uppercase text-[10px] px-4 py-2 rounded-xl border',
-                        profile.role === 'admin'
+                        (profile.role?.trim().toLowerCase() === 'admin' || profile.role?.trim().toLowerCase() === 'administrator')
                           ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                          : profile.role === 'editor'
+                          : profile.role?.trim().toLowerCase() === 'editor'
                             ? 'bg-blue-50 text-blue-700 border-blue-100'
                             : 'bg-slate-50 text-slate-600 border-slate-100'
                       )}

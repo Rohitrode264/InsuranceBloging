@@ -55,15 +55,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     // Filter links based on role visibility
+    const userRole = profile?.role?.trim().toLowerCase();
+    const isAdmin = userRole === 'admin' || userRole === 'administrator';
+
     const visibleLinks = sidebarLinks.filter(link => {
-        if (profile?.role === 'admin') return true;
-        // Contributors see Dashboard, Posts, and Users (Users will be disabled)
+        if (isAdmin) return true;
+        // Contributors see Dashboard, Posts, and Users (Users link will be visible but disabled per req)
         return link.href === '/admin' || link.href === '/admin/posts' || link.href === '/admin/users';
     });
 
     // Handle redirection for restricted routes
     useEffect(() => {
-        if (!loading && profile && profile.role !== 'admin') {
+        if (!loading && profile && !isAdmin) {
             const isRestricted =
                 pathname.startsWith('/admin/users') ||
                 pathname.startsWith('/admin/contacts');
@@ -72,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 router.push('/admin/posts');
             }
         }
-    }, [pathname, profile, loading]);
+    }, [pathname, profile, loading, isAdmin]);
 
     if (pathname === '/admin/login') {
         return <div className="min-h-screen bg-slate-50">{children}</div>;
@@ -134,7 +137,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {visibleLinks.map(link => {
                         const Icon = link.icon;
                         const isActive = pathname === link.href;
-                        const isDisabled = profile?.role !== 'admin' && (link.href === '/admin/users' || link.href === '/admin/contacts');
+                        // It's ONLY disabled if we HAVE a profile, they are NOT an admin, AND it's a restricted link
+                        const isDisabled = profile && !isAdmin && (link.href === '/admin/users' || link.href === '/admin/contacts');
 
                         return (
                             <Link

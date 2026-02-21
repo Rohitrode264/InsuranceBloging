@@ -32,7 +32,8 @@ export default function PostsPage() {
             .select('*, categories(title), subcategories(title)')
             .order('created_at', { ascending: false });
 
-        if (profile?.role === 'contributor') {
+        const userRoleCheck = profile?.role?.trim().toLowerCase();
+        if (userRoleCheck === 'contributor') {
             query = query.eq('author_id', user.id);
         }
 
@@ -92,7 +93,7 @@ export default function PostsPage() {
                             posts.map(post => (
                                 <tr key={post.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-6 py-4 font-medium text-slate-900">
-                                        <Link href={`/post/${post.slug}`} target="_blank" className="hover:text-blue-600 transition-colors">
+                                        <Link href={`/admin/blogs/blog?id=${post.id}`} className="hover:text-blue-600 transition-colors">
                                             {post.title}
                                         </Link>
                                     </td>
@@ -127,10 +128,10 @@ export default function PostsPage() {
                                         <button onClick={() => deletePost(post.id)} className="p-2 text-slate-400 hover:text-red-500">
                                             <Trash2 size={18} />
                                         </button>
-                                        <Link href={`/post/${post.slug}`} target="_blank" className="p-2 text-slate-400 hover:text-green-600" title="Preview Post">
+                                        <Link href={`/admin/blogs/blog?id=${post.id}`} className="p-2 text-slate-400 hover:text-green-600" title="Review Post">
                                             <Eye size={18} />
                                         </Link>
-                                        {userRole === 'admin' && post.status !== 'published' && (
+                                        {['admin', 'administrator'].includes(userRole?.trim().toLowerCase() || '') && post.status !== 'published' && (
                                             <button
                                                 onClick={() => publishPost(post.id)}
                                                 className="p-2 text-slate-400 hover:text-blue-600"
